@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "governed-agent-orchestrator"
+version = "0.1.0"
+description = "Capability catalog, plan validator, DecisionTrace journal, governed policy memory and a LangGraph runtime with a human-approval interrupt."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Ashutosh Gandhi" }]
+keywords = ["agents", "langgraph", "orchestration", "governance", "human-in-the-loop", "fastapi"]
+dependencies = [
+  "langgraph>=0.2",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "requests>=2.31",
+]
+
+[project.optional-dependencies]
+hf = ["torch", "transformers>=4.45", "accelerate"]
+dev = ["pytest>=8.0", "httpx", "tqdm"]
+
+[project.scripts]
+orchestrator = "orchestrator.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["orchestrator*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
