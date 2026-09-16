@@ -1,6 +1,6 @@
 # Guard demo: bounded tool execution
 
-Generated 2026-09-16 17:55 UTC at revision 1dd3a1e (uncommitted changes present) with `orchestrator demo-guard --report reports/guard-demo.md`. Planner: deterministic heuristic rules (scenarios 1 and 2) and a plan written in `orchestrator/demo.py` (scenario 3). No language model was involved.
+Generated 2026-09-16 17:56 UTC at revision d5bd49b with `orchestrator demo-guard --report reports/guard-demo.md`. Planner: deterministic heuristic rules (scenarios 1 and 2) and a plan written in `orchestrator/demo.py` (scenario 3). No language model was involved.
 
 ## 1. allowed: Forecast next year's revenue and send it to finance@example.com.
 
