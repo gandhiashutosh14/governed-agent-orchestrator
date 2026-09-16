@@ -47,10 +47,13 @@ class Scenario:
     notes: List[str] = field(default_factory=list)
 
 
-def _revision() -> str:
+def _revision(report_path: Optional[str] = None) -> str:
+    """Short commit hash, marked dirty if any *tracked* file other than the report itself has uncommitted changes."""
     try:
         sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, text=True).strip()
-        dirty = subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip()
+        status = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT, text=True)
+        own = Path(report_path).resolve().relative_to(ROOT).as_posix() if report_path else None
+        dirty = [line for line in status.splitlines() if line.strip() and not (own and line.strip().endswith(own))]
         return sha + (" (uncommitted changes present)" if dirty else "")
     except Exception:  # noqa: BLE001
         return "unknown"
@@ -129,9 +132,9 @@ async def scenario_exhausted(catalog: Catalog) -> Scenario:
     return s
 
 
-def render(scenarios: List[Scenario], command: str) -> str:
+def render(scenarios: List[Scenario], command: str, report_path: Optional[str] = None) -> str:
     lines = ["# Guard demo: bounded tool execution", "",
-             f"Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} at revision {_revision()} with `{command}`. "
+             f"Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} at revision {_revision(report_path)} with `{command}`. "
              "Planner: deterministic heuristic rules (scenarios 1 and 2) and a plan written in `orchestrator/demo.py` "
              "(scenario 3). No language model was involved.", ""]
     for s in scenarios:
@@ -153,7 +156,7 @@ async def run_demo(catalog: Catalog) -> List[Scenario]:
 def main(report_path: str, catalog_path: Optional[str] = None) -> int:
     catalog = Catalog.load(catalog_path or str(ROOT / "capabilities.json"))
     scenarios = asyncio.run(run_demo(catalog))
-    text = render(scenarios, "orchestrator demo-guard --report " + report_path)
+    text = render(scenarios, "orchestrator demo-guard --report " + report_path, report_path)
     Path(report_path).parent.mkdir(parents=True, exist_ok=True)
     Path(report_path).write_text(text, encoding="utf-8")
     print(text)
