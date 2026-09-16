@@ -46,26 +46,30 @@ def _plan_from_dict(d: Dict[str, Any]) -> Plan:
 
 def _state_to_dict(rs: RunState) -> Dict[str, Any]:
     return {"outputs": rs.outputs, "completed": sorted(rs.completed), "failed": rs.failed,
-            "approvals": sorted(rs.approvals), "fallbacks_used": rs.fallbacks_used, "status": rs.status}
+            "approvals": sorted(rs.approvals), "fallbacks_used": rs.fallbacks_used, "status": rs.status,
+            "call_limit": rs.call_limit, "calls_used": rs.calls_used, "denied": rs.denied}
 
 
-def _state_from_dict(d: Optional[Dict[str, Any]]) -> RunState:
+def _state_from_dict(d: Optional[Dict[str, Any]], call_limit: Optional[int] = None) -> RunState:
     if not d:
-        return RunState()
+        return RunState(call_limit=call_limit)
     return RunState(outputs=dict(d.get("outputs") or {}), completed=set(d.get("completed") or []),
                     failed=dict(d.get("failed") or {}), approvals=set(d.get("approvals") or []),
-                    fallbacks_used=int(d.get("fallbacks_used") or 0), status=d.get("status", "pending"))
+                    fallbacks_used=int(d.get("fallbacks_used") or 0), status=d.get("status", "pending"),
+                    call_limit=d.get("call_limit", call_limit), calls_used=int(d.get("calls_used") or 0),
+                    denied=dict(d.get("denied") or {}))
 
 
 class Orchestrator:
     """Wires planner cascade, catalog, adapters and traces into one compiled LangGraph."""
 
     def __init__(self, catalog: Catalog, adapters: Dict[str, Callable], planner, *, trace_dir: Optional[str] = None,
-                 checkpointer=None):
+                 checkpointer=None, call_limit: Optional[int] = None):
         self.catalog = catalog
         self.adapters = adapters
         self.planner = planner
         self.trace_dir = trace_dir
+        self.call_limit = call_limit          # shared tool-call budget per run; None = unlimited
         self.traces: Dict[str, DecisionTrace] = {}
         # Work completed before an approval interrupt. LangGraph discards a node's partial updates when it
         # interrupts, so the runtime state is parked here and picked up when the node re-executes on resume.
@@ -91,7 +95,7 @@ class Orchestrator:
                 trace.emit("run_failed", reason="no valid plan")
                 return {"status": "failed", "plan": None, "answer": "No valid plan could be produced for this objective."}
             return {"plan": plan.to_dict(), "plan_source": plan.source, "status": "planned",
-                    "run_state": _state_to_dict(RunState()), "approvals": [], "denied": []}
+                    "run_state": _state_to_dict(RunState(call_limit=self.call_limit)), "approvals": [], "denied": []}
 
         async def execute_node(state: RunGraphState) -> Dict[str, Any]:
             if state.get("status") == "failed" or not state.get("plan"):
@@ -99,7 +103,7 @@ class Orchestrator:
             trace = self.trace_for(state["run_id"])
             plan = _plan_from_dict(state["plan"])
             run_id = state["run_id"]
-            rs = _state_from_dict(self._partial.pop(run_id, None) or state.get("run_state"))
+            rs = _state_from_dict(self._partial.pop(run_id, None) or state.get("run_state"), self.call_limit)
             rs.approvals |= set(state.get("approvals") or [])
             runtime = Runtime(self.catalog, self.adapters, trace)
             while True:
@@ -124,8 +128,8 @@ class Orchestrator:
                     return {"run_state": _state_to_dict(rs), "status": "denied"}
 
         async def synthesize_node(state: RunGraphState) -> Dict[str, Any]:
-            if state.get("status") in ("failed",) or not state.get("plan"):
-                return {}
+            if not state.get("plan"):
+                return {}          # planning failed: the plan node already wrote the answer
             rs = _state_from_dict(state.get("run_state"))
             plan = _plan_from_dict(state["plan"])
             texts: List[str] = []

@@ -1,7 +1,8 @@
 """
 CLI:
-  python -m orchestrator.cli run "Forecast next year's revenue and send it to finance@example.com" [--llm hf:...] [--approve]
+  python -m orchestrator.cli run "Forecast next year's revenue and send it to finance@example.com" [--llm hf:...] [--approve] [--call-limit N]
   python -m orchestrator.cli audit --objectives audit/objectives.json --report reports/audit.md [--llm hf:...]
+  python -m orchestrator.cli demo-guard --report reports/guard-demo.md
   python -m orchestrator.cli serve [--port 8000]
 """
 from __future__ import annotations
@@ -22,6 +23,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--llm", default="none", help="none | mock | hf:<model-id> | openai:<model>")
     common.add_argument("--trace-dir", default="traces")
+    common.add_argument("--call-limit", type=int, default=None, help="shared tool-call budget per run (default: unlimited)")
 
     r = sub.add_parser("run", parents=[common])
     r.add_argument("objective")
@@ -32,6 +34,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     a.add_argument("--report", required=True)
     a.add_argument("--json", default=None)
     a.add_argument("--no-auto-approve", action="store_true")
+
+    d = sub.add_parser("demo-guard", help="run the three bounded-execution scenarios and write a report")
+    d.add_argument("--report", default="reports/guard-demo.md")
 
     s = sub.add_parser("serve")
     s.add_argument("--port", type=int, default=8000)
@@ -46,7 +51,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         uvicorn.run("orchestrator.api:app", host="127.0.0.1", port=args.port)
         return 0
 
-    orch, _, _ = build_orchestrator(args.llm, trace_dir=args.trace_dir)
+    if args.cmd == "demo-guard":
+        from .demo import main as demo_main
+        return demo_main(args.report)
+
+    orch, _, _ = build_orchestrator(args.llm, trace_dir=args.trace_dir, call_limit=args.call_limit)
 
     if args.cmd == "run":
         async def go():

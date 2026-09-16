@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Sequence, Set
 
 from .catalog import Catalog
+from .guard import check_constraints
 
 _REF = re.compile(r"^\$([A-Za-z0-9_\-]+)\.([A-Za-z0-9_]+)$")
 
@@ -111,6 +112,10 @@ def validate_plan(plan: Plan, catalog: Catalog, *, max_steps: int = 8, total_bud
         for k in s.inputs:
             if cap.inputs and k not in cap.inputs:
                 errors.append(f"Step {s.id} ({cap.name}) has an input '{k}' the capability does not accept.")
+        # Literal arguments are checked against the catalog's constraints here, before anything runs;
+        # arguments that reference earlier outputs are checked by the runtime once they resolve.
+        for violation in check_constraints(cap.constraints, s.inputs):
+            errors.append(f"Step {s.id} ({cap.name}): {violation}")
         for ref_step, ref_field in s.references():
             if ref_step not in known_ids:
                 errors.append(f"Step {s.id} references unknown step '{ref_step}'.")

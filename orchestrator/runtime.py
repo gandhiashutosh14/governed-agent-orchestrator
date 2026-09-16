@@ -3,6 +3,12 @@ Runtime: executes a validated plan in dependency waves. Steps in the same
 wave run concurrently; each step gets its capability's budget as a timeout,
 falls back to the declared fallback on failure, and stops the run at an
 approval gate when the capability requires a human decision.
+
+Before any tool is called the runtime applies the guard: the resolved
+arguments must satisfy the capability's constraints and one unit of the run's
+shared call budget must be reserved. Both outcomes are journaled as
+tool_call_allowed / tool_call_denied events, so a trace shows not only what
+ran but what was refused and why.
 """
 from __future__ import annotations
 
@@ -11,7 +17,8 @@ import inspect
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Set, Union
 
-from .catalog import Catalog
+from .catalog import Capability, Catalog
+from .guard import RunBudget, check_constraints
 from .plan import Plan, PlanStep, execution_waves
 from .trace import DecisionTrace, Stopwatch
 
@@ -29,6 +36,15 @@ class StepError(Exception):
     pass
 
 
+class CallDenied(Exception):
+    """The guard refused a tool call. Not retried and not sent to a fallback: the plan itself is at fault."""
+
+    def __init__(self, reason: str, detail: str):
+        super().__init__(f"{reason}: {detail}")
+        self.reason = reason
+        self.detail = detail
+
+
 @dataclass
 class RunState:
     outputs: Dict[str, Dict[str, Any]] = field(default_factory=dict)   # step_id -> output fields
@@ -37,6 +53,15 @@ class RunState:
     approvals: Set[str] = field(default_factory=set)                   # step ids approved by a human
     fallbacks_used: int = 0
     status: str = "pending"
+    call_limit: Optional[int] = None                                   # None = unlimited
+    calls_used: int = 0
+    denied: Dict[str, str] = field(default_factory=dict)               # step_id -> denial reason
+    budget: Optional[RunBudget] = field(default=None, repr=False, compare=False)
+
+    def ensure_budget(self) -> RunBudget:
+        if self.budget is None:
+            self.budget = RunBudget(self.call_limit, used=self.calls_used)
+        return self.budget
 
 
 def resolve_inputs(step: PlanStep, state: RunState) -> Dict[str, Any]:
@@ -76,13 +101,38 @@ class Runtime:
             raise ValueError(f"No adapter registered for capabilities: {', '.join(missing)}")
 
     # ------------------------------------------------------------------
+    def _guard(self, step: PlanStep, cap: Capability, inputs: Dict[str, Any], state: RunState, *, via_fallback: bool = False) -> None:
+        """Constraints, then budget. Raises CallDenied after journaling the denial."""
+        violations = check_constraints(cap.constraints, inputs)
+        if violations:
+            self.trace.emit("tool_call_denied", step=step.id, capability=cap.name, reason="constraint",
+                            violations=violations, via_fallback=via_fallback)
+            raise CallDenied("constraint", " ".join(violations))
+        budget = state.ensure_budget()
+        if not budget.reserve(1):
+            self.trace.emit("tool_call_denied", step=step.id, capability=cap.name, reason="budget",
+                            budget=budget.snapshot(), via_fallback=via_fallback)
+            if budget.denied == 1:
+                self.trace.emit("budget_exhausted", budget=budget.snapshot(), step=step.id)
+            raise CallDenied("budget", f"run call budget of {budget.limit} exhausted before step {step.id} ({cap.name}).")
+        state.calls_used = budget.used
+        self.trace.emit("tool_call_allowed", step=step.id, capability=cap.name, effect=cap.effect,
+                        compensation=cap.compensation, budget=budget.snapshot(), via_fallback=via_fallback)
+
     async def run_step(self, plan: Plan, step: PlanStep, state: RunState) -> None:
         cap = self.catalog.get(step.capability)
         assert cap is not None
         inputs = resolve_inputs(step, state)
         if cap.requires_approval and step.id not in state.approvals:
-            self.trace.emit("approval_required", step=step.id, capability=cap.name, inputs=inputs)
+            self.trace.emit("approval_required", step=step.id, capability=cap.name, inputs=inputs, effect=cap.effect)
             raise ApprovalRequired(step, inputs)
+
+        try:
+            self._guard(step, cap, inputs, state)
+        except CallDenied as d:
+            state.failed[step.id] = f"denied ({d.reason}): {d.detail}"
+            state.denied[step.id] = d.reason
+            return
 
         sw = Stopwatch()
         self.trace.emit("step_started", step=step.id, capability=cap.name, inputs=inputs)
@@ -103,9 +153,15 @@ class Runtime:
             assert fb is not None
             self.trace.emit("step_fallback", step=step.id, capability=cap.name, fallback=fb.name, objective=plan.objective)
             state.fallbacks_used += 1
+            fb_inputs = {k: v for k, v in inputs.items() if not fb.inputs or k in fb.inputs}
+            try:
+                self._guard(step, fb, fb_inputs, state, via_fallback=True)
+            except CallDenied as d:
+                state.failed[step.id] = f"{err}; fallback denied ({d.reason}): {d.detail}"
+                state.denied[step.id] = d.reason
+                return
             sw = Stopwatch()
             try:
-                fb_inputs = {k: v for k, v in inputs.items() if not fb.inputs or k in fb.inputs}
                 out = await _call(self.adapters[fb.name], fb_inputs, fb.budget_ms / 1000)
                 state.outputs[step.id] = out
                 state.completed.add(step.id)
@@ -119,6 +175,7 @@ class Runtime:
     async def run(self, plan: Plan, state: Optional[RunState] = None) -> RunState:
         """Execute all waves. Raises ApprovalRequired to pause; call again with the step approved to resume."""
         state = state or RunState()
+        state.ensure_budget()
         state.status = "running"
         for wave in execution_waves(plan):
             pending = [plan.step(sid) for sid in wave if sid not in state.completed and sid not in state.failed]
@@ -137,7 +194,8 @@ class Runtime:
                 state.failed.setdefault(sid, "blocked by a failed dependency")
         state.status = "failed" if state.failed else "completed"
         self.trace.emit("run_finished" if not state.failed else "run_failed", completed=sorted(state.completed),
-                        failed=state.failed, fallbacks_used=state.fallbacks_used)
+                        failed=state.failed, denied=state.denied, fallbacks_used=state.fallbacks_used,
+                        budget=state.ensure_budget().snapshot())
         return state
 
 

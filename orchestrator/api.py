@@ -31,7 +31,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def build_orchestrator(llm_spec: Optional[str] = None, trace_dir: Optional[str] = None,
-                       policy_path: Optional[str] = None) -> tuple:
+                       policy_path: Optional[str] = None, call_limit: Optional[int] = None) -> tuple:
     catalog = Catalog.load(os.path.join(ROOT, "capabilities.json"))
     memory = PolicyMemory(policy_path or os.path.join(ROOT, "policy_memory.json"))
     planners = []
@@ -39,7 +39,9 @@ def build_orchestrator(llm_spec: Optional[str] = None, trace_dir: Optional[str] 
         from .llm import make_llm
         planners.append(LLMPlanner(make_llm(llm_spec), catalog, memory))
     planners.append(build_heuristic_planner(catalog))
-    orch = Orchestrator(catalog, default_adapters(), PlannerCascade(planners), trace_dir=trace_dir)
+    if call_limit is None and os.environ.get("ORCH_CALL_LIMIT"):
+        call_limit = int(os.environ["ORCH_CALL_LIMIT"])
+    orch = Orchestrator(catalog, default_adapters(), PlannerCascade(planners), trace_dir=trace_dir, call_limit=call_limit)
     return orch, catalog, memory
 
 

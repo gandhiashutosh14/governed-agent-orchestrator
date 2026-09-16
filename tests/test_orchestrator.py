@@ -147,7 +147,8 @@ def test_runtime_runs_waves_and_uses_fallback(catalog):
     trace, state = asyncio.run(go())
     assert state.status == "completed" and state.fallbacks_used == 1
     assert "customers" in state.outputs["s1"]["summary"].lower()
-    assert [e.type for e in trace.events][:5] == ["wave_started", "step_started", "step_failed", "step_fallback", "step_finished"]
+    assert [e.type for e in trace.events][:7] == ["wave_started", "tool_call_allowed", "step_started", "step_failed",
+                                                  "step_fallback", "tool_call_allowed", "step_finished"]
 
 
 def test_runtime_pauses_at_approval_gate_and_resumes(catalog):
@@ -188,7 +189,7 @@ def test_graph_interrupts_for_approval_and_resumes_via_command(catalog, tmp_path
 
 def test_graph_denial_stops_the_run(catalog):
     orch = Orchestrator(catalog, default_adapters(), PlannerCascade([build_heuristic_planner(catalog)]))
-    snap = asyncio.run(orch.start("Send the top 5 countries by revenue to the sales director."))
+    snap = asyncio.run(orch.start("Send the top 5 countries by revenue to sales@example.com."))
     assert snap["status"] == "awaiting_approval"
     denied = asyncio.run(orch.resume(snap["run_id"], approved=False))
     assert denied["status"] == "denied"
@@ -200,9 +201,13 @@ def test_audit_runs_every_objective_with_the_heuristic_planner(catalog):
     objectives = json.loads((ROOT / "audit" / "objectives.json").read_text(encoding="utf-8"))
     report = asyncio.run(run_audit(orch, objectives, auto_approve=True))
     s = report.summary()
-    assert s["objectives"] == 20 and s["answered"] == 20 and s["planner_fallbacks"] == 0
-    assert s["approvals_raised"] == 3
-    assert "| Answered | 20 / 20 |" in report.to_markdown()
+    # 19, not 20: "Send ... to the sales director" names no address in an allowed domain, so since the
+    # catalog gained recipient constraints that objective is rejected at planning instead of delivered.
+    assert s["objectives"] == 20 and s["answered"] == 19 and s["planner_fallbacks"] == 0
+    assert s["approvals_raised"] == 2
+    rejected = [c for c in report.cases if c.status == "failed"]
+    assert [c.objective for c in rejected] == ["Send the top 5 countries by revenue to the sales director."]
+    assert "| Answered | 19 / 20 |" in report.to_markdown()
 
 
 def test_mine_rules_turns_fallbacks_into_draft_suggestions():

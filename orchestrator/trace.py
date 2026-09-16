@@ -18,6 +18,7 @@ EVENT_TYPES = {
     "run_started", "plan_proposed", "plan_rejected", "plan_accepted", "planner_fallback",
     "wave_started", "step_started", "step_finished", "step_failed", "step_fallback",
     "approval_required", "approval_granted", "approval_denied",
+    "tool_call_allowed", "tool_call_denied", "budget_exhausted",
     "run_finished", "run_failed", "note",
 }
 
