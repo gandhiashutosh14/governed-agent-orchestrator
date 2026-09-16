@@ -1,0 +1,75 @@
+[
+  {
+    "name": "revenue_by_year",
+    "description": "Total invoice revenue for every year in the sales database.",
+    "inputs": {},
+    "required": [],
+    "outputs": ["series", "summary"],
+    "budget_ms": 5000,
+    "tags": ["analytics"]
+  },
+  {
+    "name": "revenue_by_country",
+    "description": "Top countries by invoice revenue, optionally for one year.",
+    "inputs": {"top_n": "number", "year": "number"},
+    "required": [],
+    "outputs": ["rows", "summary"],
+    "budget_ms": 5000,
+    "tags": ["analytics"]
+  },
+  {
+    "name": "top_genres_by_tracks_sold",
+    "description": "Genres ranked by number of tracks sold.",
+    "inputs": {"top_n": "number"},
+    "required": [],
+    "outputs": ["rows", "summary"],
+    "budget_ms": 5000,
+    "tags": ["analytics"]
+  },
+  {
+    "name": "customer_count_by_country",
+    "description": "Number of customers per country.",
+    "inputs": {"top_n": "number"},
+    "required": [],
+    "outputs": ["rows", "summary"],
+    "budget_ms": 5000,
+    "tags": ["analytics"]
+  },
+  {
+    "name": "forecast_next_year",
+    "description": "Forecast next year's revenue from a yearly series using a linear trend. Pass the series from revenue_by_year.",
+    "inputs": {"series": "list"},
+    "required": ["series"],
+    "outputs": ["year", "forecast", "slope", "method", "summary"],
+    "budget_ms": 5000,
+    "tags": ["analytics"]
+  },
+  {
+    "name": "search_policies",
+    "description": "Search the company policy documents (discounts, refunds, reporting, data retention) for relevant passages.",
+    "inputs": {"query": "string"},
+    "required": ["query"],
+    "outputs": ["passages", "summary"],
+    "budget_ms": 5000,
+    "tags": ["knowledge"]
+  },
+  {
+    "name": "draft_summary",
+    "description": "Write a short summary for the objective from the facts gathered by earlier steps (pass their summary outputs).",
+    "inputs": {"objective": "string", "facts": "string"},
+    "required": ["objective", "facts"],
+    "outputs": ["text", "method"],
+    "budget_ms": 30000,
+    "tags": ["synthesis"]
+  },
+  {
+    "name": "send_report",
+    "description": "Send a report to a recipient. This is an external side effect and always needs a human to approve it.",
+    "inputs": {"recipient": "string", "text": "string"},
+    "required": ["recipient", "text"],
+    "outputs": ["delivered", "path"],
+    "budget_ms": 5000,
+    "requires_approval": true,
+    "tags": ["action"]
+  }
+]
