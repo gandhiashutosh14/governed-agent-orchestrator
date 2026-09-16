@@ -2,12 +2,12 @@
   "summary": {
     "llm": "-",
     "objectives": 20,
-    "valid_plan_first_planner": 20,
+    "valid_plan_first_planner": 19,
     "planner_fallbacks": 0,
-    "answered": 20,
+    "answered": 19,
     "step_fallbacks": 0,
-    "approvals_raised": 3,
-    "median_ms": 9,
+    "approvals_raised": 2,
+    "median_ms": 7,
     "elapsed_s": 0.2
   },
   "cases": [
@@ -20,7 +20,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 16,
+      "ms": 20,
       "answer": "Forecast next year's revenue from the yearly totals. Findings: Linear-trend forecast for 2026: 465.22 (slope -0.17/year over 5 years)",
       "errors": []
     },
@@ -33,7 +33,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 8,
+      "ms": 7,
       "answer": "Which countries generate the most revenue? Show the top 5. Findings: Top 5 countries by revenue: USA 523.06, Canada 303.96, France 195.10, Brazil 190.10, Germany 156.48",
       "errors": []
     },
@@ -46,7 +46,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 9,
+      "ms": 6,
       "answer": "Show revenue by country for 2012, top 3. Findings: Top 0 countries by revenue in 2012: ",
       "errors": []
     },
@@ -59,7 +59,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 8,
+      "ms": 7,
       "answer": "What are the top 5 genres by tracks sold?. Findings: Top 5 genres by tracks sold: Rock 835, Latin 386, Metal 264, Alternative & Punk 244, Jazz 80",
       "errors": []
     },
@@ -72,7 +72,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 8,
+      "ms": 6,
       "answer": "How many customers do we have per country? Top 10. Findings: Customers by country (top 10): USA 13, Canada 8, Brazil 5, France 5, Germany 4, United Kingdom 3, Czech Republic 2, India 2, Portugal 2, Argentina 1",
       "errors": []
     },
@@ -98,7 +98,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 9,
+      "ms": 5,
       "answer": "Can a support agent issue a refund of 120 on their own?. Findings: Chargebacks are handled by finance; support agents must not issue a refund for an invoice with an open chargeback. Revenue reports sent outside the analytics team must be approved by a human before delivery. Automated systems may dra",
       "errors": []
     },
@@ -111,7 +111,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 8,
+      "ms": 5,
       "answer": "What discount applies to an invoice with 25 line items?. Findings: Volume discounts apply to invoices with more than 10 line items: 5% for 11 to 20 items and 10% for 21 or more. Discounts are applied at invoice level, never per track. Promotional discounts require sign-off from the regional sales ma",
       "errors": []
     },
@@ -124,7 +124,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 7,
+      "ms": 6,
       "answer": "Summarise revenue per year. Findings: 2021: 449.46; 2022: 481.45; 2023: 469.58; 2024: 477.53; 2025: 450.58",
       "errors": []
     },
@@ -137,21 +137,21 @@
       "step_fallbacks": 0,
       "approvals_raised": 1,
       "answered": true,
-      "ms": 12,
+      "ms": 11,
       "answer": "Forecast next year's revenue and send the report to finance@example.com. Findings: Linear-trend forecast for 2026: 465.22 (slope -0.17/year over 5 years)",
       "errors": []
     },
     {
       "objective": "Send the top 5 countries by revenue to the sales director.",
-      "status": "completed",
-      "plan_source": "heuristic",
-      "steps": 3,
+      "status": "failed",
+      "plan_source": "-",
+      "steps": 0,
       "planner_fallback": false,
       "step_fallbacks": 0,
-      "approvals_raised": 1,
-      "answered": true,
-      "ms": 15,
-      "answer": "Send the top 5 countries by revenue to the sales director. Findings: Top 5 countries by revenue: USA 523.06, Canada 303.96, France 195.10, Brazil 190.10, Germany 156.48",
+      "approvals_raised": 0,
+      "answered": false,
+      "ms": 3,
+      "answer": "No valid plan could be produced for this objective.",
       "errors": []
     },
     {
@@ -163,7 +163,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 11,
+      "ms": 8,
       "answer": "What is the revenue trend over time and what does it project for next year?. Findings: Linear-trend forecast for 2026: 465.22 (slope -0.17/year over 5 years)",
       "errors": []
     },
@@ -176,7 +176,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 8,
+      "ms": 6,
       "answer": "How long do we keep customer contact details after an account closes?. Findings: Invoice records are retained for seven years. Customer contact details are retained while the account is active and for two years after closure. Analytics extracts that contain customer names or emails must be deleted w",
       "errors": []
     },
@@ -189,7 +189,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 10,
+      "ms": 6,
       "answer": "Which genre sells the most and how many tracks was that?. Findings: Top 5 genres by tracks sold: Rock 835, Latin 386, Metal 264, Alternative & Punk 244, Jazz 80",
       "errors": []
     },
@@ -202,7 +202,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 9,
+      "ms": 6,
       "answer": "Top 3 markets by revenue. Findings: Top 3 countries by revenue: USA 523.06, Canada 303.96, France 195.10",
       "errors": []
     },
@@ -215,7 +215,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 9,
+      "ms": 7,
       "answer": "Are discounts allowed to be combined?. Findings: Volume discounts apply to invoices with more than 10 line items: 5% for 11 to 20 items and 10% for 21 or more. Discounts are applied at invoice level, never per track. Discounts cannot be combined. When two discounts could apply, the larger one is use",
       "errors": []
     },
@@ -228,7 +228,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 10,
+      "ms": 8,
       "answer": "Predict revenue for the coming year and explain the method used. Findings: Linear-trend forecast for 2026: 465.22 (slope -0.17/year over 5 years)",
       "errors": []
     },
@@ -241,7 +241,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 10,
+      "ms": 7,
       "answer": "Which 5 countries have the most customers?. Findings: Top 5 countries by revenue: USA 523.06, Canada 303.96, France 195.10, Brazil 190.10, Germany 156.48",
       "errors": []
     },
@@ -254,7 +254,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 1,
       "answered": true,
-      "ms": 13,
+      "ms": 12,
       "answer": "Email the yearly revenue summary to reporting@example.com. Findings: 2021: 449.46; 2022: 481.45; 2023: 469.58; 2024: 477.53; 2025: 450.58",
       "errors": []
     },
@@ -267,7 +267,7 @@
       "step_fallbacks": 0,
       "approvals_raised": 0,
       "answered": true,
-      "ms": 7,
+      "ms": 8,
       "answer": "What must a forecast state before it can be circulated?. Findings: Forecasts must state the method used and the number of historical periods it was fitted on. A forecast without a stated method is not to be circulated. Revenue reports sent outside the analytics team must be approved by a human befor",
       "errors": []
     }
