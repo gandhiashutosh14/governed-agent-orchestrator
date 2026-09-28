@@ -7,7 +7,7 @@ name = "governed-agent-orchestrator"
 version = "0.1.0"
 description = "Capability catalog, plan validator, DecisionTrace journal, governed policy memory and a LangGraph runtime with a human-approval interrupt."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Ashutosh Gandhi" }]
 keywords = ["agents", "langgraph", "orchestration", "governance", "human-in-the-loop", "fastapi"]

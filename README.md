@@ -2,7 +2,7 @@
 
 **A capability catalog with typed contracts, a plan validator, an LLM-then-heuristic planner cascade, parallel-wave execution with fallbacks, bounded tool execution (argument constraints, a shared per-run call budget, effect classes), a DecisionTrace journal that records every allowed and denied call, governed policy memory, and a LangGraph runtime that interrupts for human approval. Exposed over FastAPI with Server-Sent Events.**
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![tests](https://github.com/gandhiashutosh14/governed-agent-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/gandhiashutosh14/governed-agent-orchestrator/actions/workflows/ci.yml) ![Status](https://img.shields.io/badge/status-working%20prototype-orange)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![tests](https://github.com/gandhiashutosh14/governed-agent-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/gandhiashutosh14/governed-agent-orchestrator/actions/workflows/ci.yml) ![Status](https://img.shields.io/badge/status-working%20prototype-orange)
 
 ---
 
@@ -157,7 +157,7 @@ An audit with `Qwen/Qwen2.5-Coder-1.5B-Instruct` as the first planner was starte
 
 ## Tech stack
 
-Python 3.10+ · LangGraph (StateGraph, MemorySaver, `interrupt` / `Command`) · FastAPI + uvicorn · SQLite · optional PyTorch + Transformers for a local planner model.
+Python 3.11+ (LangGraph's `interrupt()` inside async nodes needs the context propagation Python 3.11 added) · LangGraph (StateGraph, MemorySaver, `interrupt` / `Command`) · FastAPI + uvicorn · SQLite · optional PyTorch + Transformers for a local planner model.
 
 ## Quick start
 
