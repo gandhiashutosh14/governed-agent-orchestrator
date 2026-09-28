@@ -1,6 +1,6 @@
 # Guard demo: bounded tool execution
 
-Generated 2026-09-16 17:56 UTC at revision ab333bd with `orchestrator demo-guard --report reports/guard-demo.md`. Planner: deterministic heuristic rules (scenarios 1 and 2) and a plan written in `orchestrator/demo.py` (scenario 3). No language model was involved.
+Generated 2026-09-28 20:16 UTC at revision b603afe with `orchestrator demo-guard --report reports/guard-demo.md`. Planner: deterministic heuristic rules (scenarios 1 and 2) and a plan written in `orchestrator/demo.py` (scenario 3). No language model was involved.
 
 ## 1. allowed: Forecast next year's revenue and send it to finance@example.com.
 
@@ -22,7 +22,7 @@ Recipient is in the allowed domain (example.com); the irreversible send waits fo
 | 19 | approval_required | send_report recipient=finance@example.com effect=irreversible |
 | 20 | approval_granted | {"step": "s4", "by": "demo"} |
 | 22 | tool_call_allowed | send_report effect=irreversible budget 4/None |
-| 24 | step_finished | send_report in 0 ms |
+| 24 | step_finished | send_report in 1 ms |
 | 25 | run_finished | completed=['s1', 's2', 's3', 's4'] failed=[] budget={"scope": "run", "limit": null, "used": 4, "remaining": null} |
 
 ## 2. denied: Forecast next year's revenue and send it to finance@evil-example.org.
