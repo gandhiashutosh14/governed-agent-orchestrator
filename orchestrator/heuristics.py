@@ -71,7 +71,7 @@ def build_heuristic_planner(catalog: Catalog) -> HeuristicPlanner:
     hp.add_rule(r"polic(y|ies)|discount|refund|retention|retain|how long do we keep|allowed|rule|circulated|on their own", policy)
     hp.add_rule(r"forecast|next year|coming year|project(ed|ion)|predict", forecast)
     hp.add_rule(r"genre", genres)
-    hp.add_rule(r"how many customers|customers? (per|by|in each) countr", customers)
+    hp.add_rule(r"how many customers|customers? (per|by|in each) countr|most customers|customer counts?", customers)
     hp.add_rule(r"countr(y|ies)|market", by_country)
     hp.add_rule(r"per year|by year|yearly|each year|annual|over time|trend", yearly)
     return hp

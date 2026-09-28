@@ -226,3 +226,36 @@ def test_planner_output_addressed_outside_the_domain_never_runs(catalog):
     proposed = trace.of_type("plan_proposed")[0].data["errors"]
     assert any("allowed domain" in e for e in proposed)
     assert not trace.of_type("step_started") and not trace.of_type("tool_call_allowed")
+
+
+def test_denied_call_records_the_arguments_it_was_given():
+    import asyncio
+
+    from orchestrator.capabilities import default_adapters
+    from orchestrator.catalog import Catalog
+    from orchestrator.plan import Plan, PlanStep
+    from orchestrator.runtime import RunState, Runtime
+    from orchestrator.trace import DecisionTrace
+
+    catalog = Catalog.load("capabilities.json")
+    plan = Plan("rank genres", source="scripted", steps=[
+        PlanStep("s1", "top_genres_by_tracks_sold", {"top_n": 3}, reason="first"),
+        PlanStep("s2", "top_genres_by_tracks_sold", {"top_n": 4}, reason="second"),
+    ])
+    trace = DecisionTrace("denied-args")
+    asyncio.run(Runtime(catalog, default_adapters(), trace).run(plan, RunState(call_limit=1)))
+    denied = trace.of_type("tool_call_denied")
+    assert len(denied) == 1
+    assert denied[0].data["reason"] == "budget"
+    assert denied[0].data["inputs"]["top_n"] in (3, 4)
+
+
+def test_most_customers_question_plans_a_customer_count():
+    from orchestrator.catalog import Catalog
+    from orchestrator.heuristics import build_heuristic_planner
+
+    planner = build_heuristic_planner(Catalog.load("capabilities.json"))
+    plan = planner.plan("Which 5 countries have the most customers?")
+    assert plan is not None
+    assert plan.steps[0].capability == "customer_count_by_country"
+    assert plan.steps[0].inputs["top_n"] == 5

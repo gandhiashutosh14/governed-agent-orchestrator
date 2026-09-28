@@ -106,12 +106,12 @@ class Runtime:
         violations = check_constraints(cap.constraints, inputs)
         if violations:
             self.trace.emit("tool_call_denied", step=step.id, capability=cap.name, reason="constraint",
-                            violations=violations, via_fallback=via_fallback)
+                            violations=violations, inputs=inputs, via_fallback=via_fallback)
             raise CallDenied("constraint", " ".join(violations))
         budget = state.ensure_budget()
         if not budget.reserve(1):
             self.trace.emit("tool_call_denied", step=step.id, capability=cap.name, reason="budget",
-                            budget=budget.snapshot(), via_fallback=via_fallback)
+                            budget=budget.snapshot(), inputs=inputs, via_fallback=via_fallback)
             if budget.denied == 1:
                 self.trace.emit("budget_exhausted", budget=budget.snapshot(), step=step.id)
             raise CallDenied("budget", f"run call budget of {budget.limit} exhausted before step {step.id} ({cap.name}).")
