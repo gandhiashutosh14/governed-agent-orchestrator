@@ -15,11 +15,13 @@ from .planner import HeuristicPlanner
 # "send it to finance@example.com." / "email the summary to reporting@example.com" / "send ... to the sales director"
 _RECIPIENT = re.compile(r"\b(?:send|email|deliver|mail)\b.*?\bto\s+([A-Za-z0-9 ._@-]+?)(?:\.(?=\s|$)|,|$|\s+and\b)", re.I | re.S)
 _TOP_N = re.compile(r"\btop (\d+)\b", re.I)
+# "Which 5 countries have the most customers?" / "5 countries by revenue"; used when there is no "top N".
+_N_COUNTRIES = re.compile(r"\b(\d+) countr(?:y|ies)\b", re.I)
 _YEAR = re.compile(r"\b(20\d{2})\b")
 
 
 def _top_n(objective: str, default: int = 5) -> int:
-    m = _TOP_N.search(objective)
+    m = _TOP_N.search(objective) or _N_COUNTRIES.search(objective)
     return int(m.group(1)) if m else default
 
 

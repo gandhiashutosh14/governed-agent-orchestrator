@@ -153,6 +153,8 @@ def test_runtime_denies_a_resolved_argument_that_violates_a_constraint(catalog):
     assert state.status == "failed" and state.denied == {"s2": "constraint"}
     denied = trace.of_type("tool_call_denied")
     assert len(denied) == 1 and denied[0].data["reason"] == "constraint" and "maximum is 10" in denied[0].data["violations"][0]
+    # The denial records the inputs the guard saw: the reference resolved to s1's summary, not "$s1.summary".
+    assert denied[0].data["inputs"] == {"objective": "x", "facts": state.outputs["s1"]["summary"]}
     assert [e.data["capability"] for e in trace.of_type("tool_call_allowed")] == ["revenue_by_year"]
     assert not trace.of_type("step_fallback")            # a denial is not a failure to retry
 
@@ -202,6 +204,41 @@ def test_fallback_calls_consume_budget_too(catalog):
     trace, state = asyncio.run(go(1))
     assert state.status == "failed" and state.denied == {"s1": "budget"}
     assert "fallback denied (budget)" in state.failed["s1"]
+
+
+def test_a_failing_trace_listener_is_not_mistaken_for_a_tool_failure(catalog):
+    """A recorder that raises on step_finished must not send the step to its fallback: the tool already ran."""
+    adapters = default_adapters()
+    calls = {"primary": 0, "fallback": 0}
+    primary, fallback = adapters["revenue_by_country"], adapters["customer_count_by_country"]
+
+    def counted_primary(inputs):
+        calls["primary"] += 1
+        return primary(inputs)
+
+    def counted_fallback(inputs):
+        calls["fallback"] += 1
+        return fallback(inputs)
+    adapters["revenue_by_country"] = counted_primary
+    adapters["customer_count_by_country"] = counted_fallback
+    cat = _with(catalog, "revenue_by_country", fallback="customer_count_by_country")
+    plan = Plan("x", [PlanStep("s1", "revenue_by_country", {"top_n": 3})])
+
+    def recorder(ev):
+        if ev.type == "step_finished":
+            raise ConnectionError("audit broker unreachable")
+
+    async def go():
+        trace = DecisionTrace("listener")
+        trace.subscribe(recorder)
+        state = RunState()
+        with pytest.raises(ConnectionError):
+            await Runtime(cat, adapters, trace).run(plan, state)
+        return trace, state
+    trace, state = asyncio.run(go())
+    assert calls == {"primary": 1, "fallback": 0}
+    assert state.completed == {"s1"} and state.fallbacks_used == 0 and not state.failed
+    assert not trace.of_type("step_failed") and not trace.of_type("step_fallback")
 
 
 def test_budget_survives_the_approval_interrupt(catalog):
@@ -255,7 +292,10 @@ def test_most_customers_question_plans_a_customer_count():
     from orchestrator.heuristics import build_heuristic_planner
 
     planner = build_heuristic_planner(Catalog.load("capabilities.json"))
-    plan = planner.plan("Which 5 countries have the most customers?")
-    assert plan is not None
-    assert plan.steps[0].capability == "customer_count_by_country"
-    assert plan.steps[0].inputs["top_n"] == 5
+    # 5 is also the default when no number is found, so 7 is what shows the number is read from the text.
+    for objective, n in (("Which 5 countries have the most customers?", 5),
+                         ("Which 7 countries have the most customers?", 7)):
+        plan = planner.plan(objective)
+        assert plan is not None
+        assert plan.steps[0].capability == "customer_count_by_country"
+        assert plan.steps[0].inputs["top_n"] == n

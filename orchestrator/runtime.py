@@ -138,15 +138,19 @@ class Runtime:
         self.trace.emit("step_started", step=step.id, capability=cap.name, inputs=inputs)
         try:
             out = await _call(self.adapters[cap.name], inputs, cap.budget_ms / 1000)
-            state.outputs[step.id] = out
-            state.completed.add(step.id)
-            self.trace.emit("step_finished", step=step.id, capability=cap.name, ms=sw.ms(), outputs=_preview(out))
-            return
         except ApprovalRequired:
             raise
         except Exception as e:  # noqa: BLE001 - every failure is journaled, then fallback or fail
             err = f"{type(e).__name__}: {e}" if not isinstance(e, asyncio.TimeoutError) else f"Timeout after {cap.budget_ms} ms"
             self.trace.emit("step_failed", step=step.id, capability=cap.name, ms=sw.ms(), error=err)
+        else:
+            # Only the tool call is guarded above. A trace subscriber that fails here (a recorder that
+            # cannot publish) must not be mistaken for a tool failure: the call has already happened and a
+            # fallback would be a second side effect, so its error propagates and fails the run.
+            state.outputs[step.id] = out
+            state.completed.add(step.id)
+            self.trace.emit("step_finished", step=step.id, capability=cap.name, ms=sw.ms(), outputs=_preview(out))
+            return
 
         if cap.fallback:
             fb = self.catalog.get(cap.fallback)
@@ -163,12 +167,13 @@ class Runtime:
             sw = Stopwatch()
             try:
                 out = await _call(self.adapters[fb.name], fb_inputs, fb.budget_ms / 1000)
+            except Exception as e:  # noqa: BLE001
+                self.trace.emit("step_failed", step=step.id, capability=fb.name, ms=sw.ms(), error=f"{type(e).__name__}: {e}")
+            else:
                 state.outputs[step.id] = out
                 state.completed.add(step.id)
                 self.trace.emit("step_finished", step=step.id, capability=fb.name, ms=sw.ms(), outputs=_preview(out), via_fallback=True)
                 return
-            except Exception as e:  # noqa: BLE001
-                self.trace.emit("step_failed", step=step.id, capability=fb.name, ms=sw.ms(), error=f"{type(e).__name__}: {e}")
         state.failed[step.id] = err
 
     # ------------------------------------------------------------------
