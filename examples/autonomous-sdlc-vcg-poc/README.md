@@ -186,3 +186,15 @@ The 3-SAT work motivates thinking about **better problem representations and sea
 ## Repository scope and publishing notes
 
 This code is distributed as a self-contained research sample. See [SECURITY.md](SECURITY.md) and [PUBLICATION_NOTES.md](PUBLICATION_NOTES.md) before use. The local server intentionally binds to loopback only. No open-source license is granted unless one is subsequently added.
+
+## V3: Tiered AI OS + progressive skills (research simulation)
+
+Adds a guarded **Tier 0 deterministic / Tier 1 small-model / Tier 2 frontier-agent** task router, four on-demand `SKILL.md` workflows, a tenant- and revision-filtered evidence store, and a dashboard view built on existing *real local* BM25/TF-IDF/graph retrieval. The model tiers themselves are **simulated**; there are no provider calls or deployed workers. No security approval is silently bypassed when budgets are reduced. Read [the V3 architecture and limitations](docs/v3-tiered-os.md).
+
+```bash
+python tiered_os.py                   # annotated JSON demonstration
+python -m unittest discover -s tests -v  # 27 tests
+python server.py                     # v3 dashboard at localhost:8765
+```
+
+Obsidian and local voice engines are optional future adapters, not requirements or security boundaries. The VCG—not a freeform shared chat history—remains the source of revision-aware task context.

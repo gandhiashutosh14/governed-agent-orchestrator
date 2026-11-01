@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 
 from harness import ROOT, OUT, Issue, build_demo
 from retrieval import ContextRetriever, benchmark, fixture_corpus
+from tiered_os import demonstration
 
 LOCK = threading.Lock()
 SIGNALS = OUT / "signals.jsonl"
@@ -91,6 +92,9 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/data":
             with LOCK:
                 self.send(200, load_data())
+        elif path == "/api/os/demo":
+            # Public synthetic fixture; no provider credentials or agent actions.
+            self.send(200, demonstration())
         else:
             self.send(404, {"error": "not found"})
 
